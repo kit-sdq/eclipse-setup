@@ -24,7 +24,9 @@ Invoke-WebRequest -Uri $url -OutFile $dest
         Param($path)
         if(-Not(Test-Path -Path $path)) {
             New-Item -Name $path -Type Directory
-        } else {Get-ChildItem -Path $path -Recurse | Remove-Item -force -recurse}
+        } else {
+            # add choice if folder content should be removed
+            Get-ChildItem -Path $path -Recurse | Remove-Item -force -recurse}
     }
     function Writer {
         Param($output)
@@ -110,15 +112,15 @@ CreateFolder $eclipseworkspace
 
 # Download eclipse
 $downloadurl = $platform.eclipsedownloadurl
-Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse"
-# Start-Job -Name "install-eclipse" -ScriptBlock {}
+# Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse"
+Start-Job -Name "install-eclipse" -ScriptBlock {}
 
 # Download github repositories
 Writer "Starting to download github repositories"
 $projects = $config.projects
 $counter = 1
 foreach($project in $projects){
-    Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
+    # Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
     $counter = $counter+1
 }
 
@@ -127,11 +129,20 @@ foreach($project in $projects){
 FinishJob "install-eclipse"
 
 # provision eclipse
-$eclipseExecutable = "$eclipse/eclipse.exe"
+$eclipseExecutable = "$eclipse/eclipse"
 $updatesites = $platform.updatesite + "," + $config.updatesites -join ","
 Write-Host $updatesites
+$plugins = $config.plugins
+$pluginstring = ""
+foreach($plugin in $plugins) {
+    $name = $plugin.name
+    $version = $plugin.version
+    Write-Host "$name $version"
+    $pluginstring = "$pluginstring,$name\:$version"
+}
+Write-Host $pluginstring
 $plugins = $config.plugins -join ","
-Write-Host "Plugins $config.plugins"
+Write-Host "Plugins $plugins"
 Write-Host "Updatesites $updatesites $plugins"
 # Start-Job -ArgumentList  -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
 # Invoke-Expression $eclipseExecutable
