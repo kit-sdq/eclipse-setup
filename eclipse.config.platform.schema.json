@@ -1,0 +1,15 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://vitruv.tools/eclipse.config.platform.schema.json",
+    "title": "EclipseConfig",
+    "description": "Config file containing a platform download url.",
+    "type": "object",
+    "properties": {
+        "eclipsedownloadurl": {
+          "description": "The download url for the eclipse to be used. Shall be a Modelling Tools eclipse zip.",
+          "type": "string"
+        },
+        "updatesite" : "string"
+      },
+      "required": [ "eclipsedownloadurl", "updatesite" ]
+  }

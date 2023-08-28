@@ -1,0 +1,19 @@
+{
+    "$schema": "eclipse.config.schema.json",
+    "updatesites": ["https://vitruv-tools.github.io/updatesite/nightly/aggregated/"],
+    "plugins": [
+        {
+            "name": "tools.vitruv.change.atomic",
+            "version": ""
+        }
+    ],
+    "projects": [
+        {
+            "url": "https://github.com/vitruv-tools/Vitruv-Change.git",
+            "tag": "main",
+            "plugins": [
+                "tools.vitruv.change.atomic"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://vitruv.tools/eclipse.config.schema.json",
+    "title": "EclipseConfig",
+    "description": "A configuration of an eclipse installation, provisioned with plugins needed to work with or develop the Vitruvius project (see vitruv.tools for more information).",
+    "type": "object",
+    "properties": {
+      "updatesites": {
+        "description": "Update Sites which contain eclipse plugins to be installed",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "uniqueItems": true
+      },
+      "plugins": {
+        "type": "array",
+        "description": "Eclipse plugins to be installed with a specific version. If no version is given, installs the latest.",
+        "plugin": {
+            "type": "object",
+            "properties": {
+                "name": "string",
+                "version": "string",
+                "uniqueItems": true,
+                "required": [ "name" ]
+            }
+          }
+      },
+      "projects": {
+        "type": "array",
+        "description": "Projects to clone from github (or any other platform) and import into the workspace. The projects will not be copied into the workspace but imported.",
+        "project": {
+            "type": "object",
+            "properties": {
+                "url": "string",
+                "plugins": {
+                    "type": "array",
+                    "plugin": {
+                        "name": "string"
+                    }
+                }, 
+                "tag": "string",
+                "uniqueItems": true,
+                "required": [ "url", "plugins", "tag" ]
+            }
+          }
+      }
+    }
+  }
