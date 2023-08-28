@@ -13,12 +13,6 @@ Param($regex, $string, $message)
     }
 }
 
-function Download {
-Param($url, $dest)
-Invoke-WebRequest -Uri $url -OutFile $dest
-}
-
-
 [scriptblock] $func = {
     function CreateFolder {
         Param($path)
@@ -32,6 +26,10 @@ Invoke-WebRequest -Uri $url -OutFile $dest
         Param($output)
         Write-Host $output
     }
+    function Download {
+        Param($url, $dest)
+        Invoke-WebRequest -Uri $url -OutFile $dest
+        }
 }
 
 Invoke-Command -NoNewScope -ScriptBlock $func
@@ -42,10 +40,10 @@ function InstallEclipse {
     #  download eclipse
     if(-Not(Test-Path -Path "eclipse.zip" -PathType Leaf)) {
         Writer "Download eclipse from $eclipsedownloadurl"
-        Invoke-WebRequest -Uri $eclipsedownloadurl -OutFile "eclipse.zip"
+        Download $eclipsedownloadurl "eclipse.zip"
     }
     Writer "Unzip eclipse. As a previous installation may already be configured, it is removed."
-    Expand-Archive -LiteralPath eclipse.zip -DestinationPath .
+    # Expand-Archive -LiteralPath eclipse.zip -DestinationPath .
     Writer "Unzipping completed"
 }
 
@@ -112,7 +110,7 @@ CreateFolder $eclipseworkspace
 
 # Download eclipse
 $downloadurl = $platform.eclipsedownloadurl
-# Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse"
+# Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse" -InitializationScript $func
 Start-Job -Name "install-eclipse" -ScriptBlock {}
 
 # Download github repositories
@@ -121,6 +119,7 @@ $projects = $config.projects
 $counter = 1
 foreach($project in $projects){
     # Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
+    Start-Job -Name "project$counter" -ScriptBlock {}
     $counter = $counter+1
 }
 
