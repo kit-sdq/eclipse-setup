@@ -127,6 +127,23 @@ foreach($project in $projects){
 # await eclipse unzipping completion
 FinishJob "install-eclipse"
 
+# sets the new workspace as the default workspace
+$absoluteworkspace = Resolve-Path -Path $eclipseworkspace
+Write-Host $absoluteworkspace
+$Content = get-content eclipse\configuration\config.ini
+$NewContent = $Content -replace 'osgi.instance.area.default=.*', "osgi.instance.area.default=$absoluteworkspace"
+$NewContent | Set-Content eclipse\configuration\config.ini
+
+$Content = get-content eclipse\eclipse.ini
+$NewContent = $Content -replace 'osgi.instance.area.default=.*', "osgi.instance.area.default=$absoluteworkspace"
+$NewContent | Set-Content eclipse\eclipse.ini
+
+#  org.eclipse.cdt.managedbuilder.core.headlessbuild ist in der Eclipse-Installation nicht vorhanden
+# eclipse\eclipsec.exe -noSplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -import .\git\Vitruv-Change -data workspace
+# ruft einfach nur den Dialog zum Importieren mit copy auf
+# eclipse\eclipse.exe .\git\Vitruv-Change
+
+
 # provision eclipse
 $eclipseExecutable = "$eclipse/eclipse"
 $updatesites = $platform.updatesite + "," + $config.updatesites -join ","
