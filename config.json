@@ -1,10 +1,15 @@
 {
     "$schema": "eclipse.config.schema.json",
-    "updatesites": ["https://vitruv-tools.github.io/updatesite/nightly/aggregated/"],
+    "updatesites": ["https://vitruv-tools.github.io/updatesite/nightly/aggregated/","https://download.eclipse.org/modeling/tmf/xtext/updates/composite/marketplace/"],
     "plugins": [
         {
             "name": "tools.vitruv.change.atomic",
             "updatesite":"https://vitruv-tools.github.io/updatesite/nightly/aggregated/",
+            "version": ""
+        },
+        {
+            "name": "org.eclipse.xtend.sdk.feature.group",
+            "updatesite":"https://download.eclipse.org/modeling/tmf/xtext/updates/composite/marketplace/",
             "version": ""
         }
     ],
