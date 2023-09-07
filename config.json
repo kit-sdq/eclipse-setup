@@ -4,6 +4,7 @@
     "plugins": [
         {
             "name": "tools.vitruv.change.atomic",
+            "updatesite":"https://vitruv-tools.github.io/updatesite/nightly/aggregated/",
             "version": ""
         }
     ],
@@ -11,7 +12,7 @@
         {
             "url": "https://github.com/vitruv-tools/Vitruv-Change.git",
             "tag": "main",
-            "plugins": [
+            "projectplugins": [
                 "tools.vitruv.change.atomic"
             ]
         }

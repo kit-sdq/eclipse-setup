@@ -64,6 +64,12 @@ function CloneBuildRepo {
     Set-Location ../..
 }
 
+function InstallPlugin {
+    Param($repository, $installTargetFeatureGroup)
+    $tag=$installTargetFeatureGroup + "Installation" -join "-"
+    eclipse/eclipsec.exe -application "org.eclipse.equinox.p2.director" -repository $repository -installIU ${installTargetFeatureGroup} -tag $tag -destination "eclipse"
+}
+
 function FinishJob {
     Param($name)
     Wait-Job -Name $name
@@ -150,11 +156,16 @@ $updatesites = $platform.updatesite + "," + $config.updatesites -join ","
 Write-Host $updatesites
 $plugins = $config.plugins
 $pluginstring = ""
+$counter = 1
 foreach($plugin in $plugins) {
     $name = $plugin.name
     $version = $plugin.version
     Write-Host "$name $version"
     $pluginstring = "$pluginstring,$name\:$version"
+
+    # Start-Job -ArgumentList $plugin.updatesite,$plugin.name -ScriptBlock $Function:InstallPlugin -Name "plugin$counter" -InitializationScript $func
+    Start-Job -Name "plugin$counter" -ScriptBlock {}
+    $counter = $counter+1
 }
 Write-Host $pluginstring
 $plugins = $config.plugins -join ","
@@ -168,8 +179,12 @@ Write-Host "Updatesites $updatesites $plugins"
 
 # await repository cloning and building
 for ($i = 1; $i -lt $counter; $i++) {
-    FinishJob "project$i"
+    FinishJob "plugin$i"
 }
+
+
+
+
 
 
 
