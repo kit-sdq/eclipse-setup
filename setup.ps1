@@ -77,24 +77,7 @@ function FinishJob {
     Writer $output
     Remove-Job -Name $name
 }
-    
 
-
-
-# Ask the user for consent, the script clears all information present in this folder
-$title    = 'Setup eclipse'
-$question = 'Are you sure you want to proceed? The setup will remove the contents of existing subfolders.'
-
-$choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
-$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
-$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
-
-$decision = $Host.UI.PromptForChoice($title, $question, $choices, 1)
-if ($decision -eq 0) {
-} else {
-    Writer 'Aborted'
-    Exit
-}
 
 
 # Main routine to check preconditions, install and configure eclipse
@@ -109,9 +92,55 @@ $platform = Get-Content -Raw -Path platform.json | ConvertFrom-Json
 $git = "git"
 $eclipse = "eclipse"
 $eclipseworkspace = "workspace"
-CreateFolder $git
-CreateFolder $eclipse
-CreateFolder $eclipseworkspace
+$existingfolders.Clear()
+$gitExists = Test-Path $git
+$eclipseExists = Test-Path $eclipse
+$eclipseworkspaceExists = Test-Path $eclipseworkspace
+if($gitExists -eq 0){
+    CreateFolder $git
+} else {
+    $existingfolders += @($git)
+}
+if($eclipseExists -eq 0){
+    CreateFolder $eclipse
+} else {
+    $existingfolders += @($eclipse)
+}
+if($eclipseworkspaceExists -eq 0){
+    CreateFolder $eclipseworkspace
+} else {
+    $existingfolders += @($eclipseworkspace)
+}
+
+# Asks user if he wants to overwrite folders if they exist or if the existing folders should be used
+if($existingfolders.length -gt 0){
+    $question = 'The folder(s) ' + $existingfolders + ' already exist. Do you want do overwrite them? (All current content of these folders gets deleted!)'
+
+    $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
+
+    $decision = $Host.UI.PromptForChoice($title, $question, $choices, 1)
+    if ($decision -eq 0) {
+        CreateFolder $git
+        CreateFolder $eclipse
+        CreateFolder $eclipseworkspace
+    } else {
+        $question = 'Should the content bewritten into the existing folders? Existing content will remain.'
+
+        $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+        $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
+        $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
+    
+        $decision = $Host.UI.PromptForChoice($title, $question, $choices, 1)
+        
+        if ($decision -eq 0) {
+        } else {
+            Writer 'Aborted'
+            Exit
+        }
+    }
+}
 
 
 # Download eclipse
@@ -182,8 +211,8 @@ for ($i = 1; $i -lt $counter; $i++) {
     FinishJob "plugin$i"
 }
 
-
-
+# Problems with the headlessbuild remain
+# eclipse\eclipsec.exe -vm "C:/Program Files/Java/jdk-20/bin/server/jvm.dll" -vmargs -application "org.eclipse.cdt.managedbuilder.core.headlessbuild" -import "git\Vitruv-Change\bundles" -data "workspace"
 
 
 
