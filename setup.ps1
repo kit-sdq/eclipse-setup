@@ -43,7 +43,7 @@ function InstallEclipse {
         Download $eclipsedownloadurl "eclipse.zip"
     }
     Writer "Unzip eclipse. As a previous installation may already be configured, it is removed."
-    # Expand-Archive -LiteralPath eclipse.zip -DestinationPath .
+    Expand-Archive -LiteralPath eclipse.zip -DestinationPath .
     Writer "Unzipping completed"
 }
 
@@ -60,14 +60,14 @@ function CloneBuildRepo {
     Set-Location $git
     git clone --branch $tag $url
     Set-Location $folder
-    mvn clean verify
+    mvn clean verify -fae
     Set-Location ../..
 }
 
 function InstallPlugin {
     Param($repository, $installTargetFeatureGroup)
     $tag=$installTargetFeatureGroup + "Installation" -join "-"
-    eclipse/eclipsec.exe -application "org.eclipse.equinox.p2.director" -repository $repository -installIU ${installTargetFeatureGroup} -tag $tag -destination "eclipse"
+    eclipse/eclipsec.exe -nosplash -application "org.eclipse.equinox.p2.director" -repository $repository -installIU $installTargetFeatureGroup -tag $tag
 }
 
 function FinishJob {
@@ -76,6 +76,21 @@ function FinishJob {
     $output = Receive-Job -Name $name
     Writer $output
     Remove-Job -Name $name
+}
+
+function ConvertToKeyStrokes {
+    param([int[]]$indices)
+    $return = "{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{ENTER}+{TAB}+{TAB}"
+    for ($i = 0; $i -le $indices[$indices.Count-1]; $i++) {
+        $a = $indices -contains $i
+        if($indices -contains $i) {
+            $return += " {DOWN}"
+        } else {
+            $return += "{DOWN}"
+        }
+    }
+    $return += "{TAB}{TAB}{TAB}{ENTER}"
+    return $return
 }
 
 
@@ -92,22 +107,22 @@ $platform = Get-Content -Raw -Path platform.json | ConvertFrom-Json
 $git = "git"
 $eclipse = "eclipse"
 $eclipseworkspace = "workspace"
-$existingfolders.Clear()
+$existingfolders = @()
 $gitExists = Test-Path $git
 $eclipseExists = Test-Path $eclipse
 $eclipseworkspaceExists = Test-Path $eclipseworkspace
 if($gitExists -eq 0){
-    CreateFolder $git
+    # CreateFolder $git
 } else {
     $existingfolders += @($git)
 }
 if($eclipseExists -eq 0){
-    CreateFolder $eclipse
+    # CreateFolder $eclipse
 } else {
     $existingfolders += @($eclipse)
 }
 if($eclipseworkspaceExists -eq 0){
-    CreateFolder $eclipseworkspace
+    # CreateFolder $eclipseworkspace
 } else {
     $existingfolders += @($eclipseworkspace)
 }
@@ -122,11 +137,11 @@ if($existingfolders.length -gt 0){
 
     $decision = $Host.UI.PromptForChoice($title, $question, $choices, 1)
     if ($decision -eq 0) {
-        CreateFolder $git
-        CreateFolder $eclipse
-        CreateFolder $eclipseworkspace
+        # CreateFolder $git
+        # CreateFolder $eclipse
+        # CreateFolder $eclipseworkspace
     } else {
-        $question = 'Should the content bewritten into the existing folders? Existing content will remain.'
+        $question = 'Should the content be written into the existing folders? Existing content will remain.'
 
         $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
         $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
@@ -146,18 +161,15 @@ if($existingfolders.length -gt 0){
 # Download eclipse
 $downloadurl = $platform.eclipsedownloadurl
 # Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse" -InitializationScript $func
-Start-Job -Name "install-eclipse" -ScriptBlock {}
 
 # Download github repositories
 Writer "Starting to download github repositories"
 $projects = $config.projects
-$counter = 1
+$counterproject = 1
 foreach($project in $projects){
-    # Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
-    Start-Job -Name "project$counter" -ScriptBlock {}
-    $counter = $counter+1
+    # Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counterproject" -InitializationScript $func
+    $counterproject = $counterproject+1
 }
-
 
 # await eclipse unzipping completion
 FinishJob "install-eclipse"
@@ -173,15 +185,9 @@ $Content = get-content eclipse\eclipse.ini
 $NewContent = $Content -replace 'osgi.instance.area.default=.*', "osgi.instance.area.default=$absoluteworkspace"
 $NewContent | Set-Content eclipse\eclipse.ini
 
-#  org.eclipse.cdt.managedbuilder.core.headlessbuild ist in der Eclipse-Installation nicht vorhanden
-# eclipse\eclipsec.exe -noSplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -import .\git\Vitruv-Change -data workspace
-# ruft einfach nur den Dialog zum Importieren mit copy auf
-# eclipse\eclipse.exe .\git\Vitruv-Change
-
-
 # provision eclipse
-$eclipseExecutable = "$eclipse/eclipse"
-$updatesites = $platform.updatesite + "," + $config.updatesites -join ","
+$temp = $config.updatesites -Join ","
+$updatesites = $platform.updatesite + "," + $temp
 Write-Host $updatesites
 $plugins = $config.plugins
 $pluginstring = ""
@@ -189,34 +195,48 @@ $counter = 1
 foreach($plugin in $plugins) {
     $name = $plugin.name
     $version = $plugin.version
-    Write-Host "$name $version"
-    $pluginstring = "$pluginstring,$name\:$version"
-
-    # Start-Job -ArgumentList $plugin.updatesite,$plugin.name -ScriptBlock $Function:InstallPlugin -Name "plugin$counter" -InitializationScript $func
-    Start-Job -Name "plugin$counter" -ScriptBlock {}
+    if ($version -eq "") {
+        $pluginstring += "$name,"
+    } else {
+        $pluginstring += "$name/$version,"
+    }
     $counter = $counter+1
 }
-Write-Host $pluginstring
-$plugins = $config.plugins -join ","
-Write-Host "Plugins $plugins"
-Write-Host "Updatesites $updatesites $plugins"
-# Start-Job -ArgumentList  -ScriptBlock $Function:CloneBuildRepo -Name "project$counter" -InitializationScript $func
-# Invoke-Expression $eclipseExecutable
+# Start-Job -ArgumentList $updatesites,$pluginstring -ScriptBlock $Function:InstallPlugin -Name "plugin" -InitializationScript $func
 
-
-
-
-# await repository cloning and building
-for ($i = 1; $i -lt $counter; $i++) {
-    FinishJob "plugin$i"
-}
+# await plugin installation
+FinishJob "plugin"
 
 # Problems with the headlessbuild remain
 # eclipse\eclipsec.exe -vm "C:/Program Files/Java/jdk-20/bin/server/jvm.dll" -vmargs -application "org.eclipse.cdt.managedbuilder.core.headlessbuild" -import "git\Vitruv-Change\bundles" -data "workspace"
 
+# await project builds
+for ($i = 1; $i -lt $counterproject; $i++) {
+    FinishJob "project$i"
+}
 
-
-
+add-type -AssemblyName microsoft.VisualBasic
+add-type -AssemblyName System.Windows.Forms
+foreach($project in $projects){
+    $projectplugins = $project.projectplugins
+    $url = $project.url
+    $folder = $project.url -replace '.*/'
+    $folder = $folder -replace '.git'
+    Writer "Clone $url into $git/$folder" 
+    $localfolder = "$git/$folder"
+    $WindowTitle = "workspace - Eclipse IDE"
+    
+    eclipse/eclipse.exe $localfolder
+    Start-Sleep 5
+    # only select the plugins to be imported
+    start-sleep -Milliseconds 500
+    $config = ConvertToKeyStrokes $projectplugins
+    Write-Host $config
+    [Microsoft.VisualBasic.Interaction]::AppActivate($WindowTitle)
+    [System.Windows.Forms.SendKeys]::SendWait($config)
+    Start-Sleep 10
+    $counterproject = $counterproject+1
+}
 
 
 # /usr/eclipse/eclipse \
