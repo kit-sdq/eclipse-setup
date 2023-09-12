@@ -1,0 +1,1 @@
+./setup.ps1 -platformpath windows.json

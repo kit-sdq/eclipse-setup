@@ -1,3 +1,7 @@
+Param(
+   [string]$platformpath
+)
+
 # Invokes the command given and returns its version
 function Get-Version {
 Param([string]$Command)
@@ -80,13 +84,14 @@ function FinishJob {
     Remove-Job -Name $name
 }
 
+
 # Main routine to check preconditions, install and configure eclipse
 Writer "Installing Eclipse Modeling Tools, downloading and importing relevant plugins"
 Get-Condition "17" (Get-Version "java") "Java 17 not found! Please ensure you have Java installed!"
 Get-Condition "" (Get-Version "git") "Git not found!"
 Get-Condition "" (Get-Version "mvn") "Maven not found! Please install maven, as the automatic installation is currently not supported"
 $config = Get-Content -Raw -Path config.json | ConvertFrom-Json
-$platform = Get-Content -Raw -Path platform.json | ConvertFrom-Json
+$platform = Get-Content -Raw -Path $platformpath | ConvertFrom-Json
 
 #  create folders
 $git = "git"
