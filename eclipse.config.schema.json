@@ -34,15 +34,16 @@
             "type": "object",
             "properties": {
                 "url": "string",
-                "plugins": {
+                "projectplugins": {
+                    "description": "The indices in the import project wizard of the plugins that should be imported.",
                     "type": "array",
-                    "plugin": {
-                        "name": "string"
+                    "items": {
+                        "type": "integer"
                     }
                 }, 
                 "tag": "string",
                 "uniqueItems": true,
-                "required": [ "url", "plugins", "tag" ]
+                "required": [ "url", "projectplugins", "tag" ]
             }
           }
       }

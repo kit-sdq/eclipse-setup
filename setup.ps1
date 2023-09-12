@@ -1,4 +1,4 @@
-# Invokes the command given and returns its output
+# Invokes the command given and returns its version
 function Get-Version {
 Param([string]$Command)
 Get-Command $Command | Select-Object Version
@@ -13,27 +13,28 @@ Param($regex, $string, $message)
     }
 }
 
+# Used to make the contained functions available to created asynchronous jobs
 [scriptblock] $func = {
+    # The path to either be created or completely emptied
     function CreateFolder {
         Param($path)
-        if(-Not(Test-Path -Path $path)) {
-            New-Item -Name $path -Type Directory
-        } else {
-            # add choice if folder content should be removed
-            Get-ChildItem -Path $path -Recurse | Remove-Item -force -recurse}
+        if(-Not(Test-Path -Path $path)) {New-Item -Name $path -Type Directory}
+        else {Get-ChildItem -Path $path -Recurse | Remove-Item -force -recurse}
     }
+    # Wrapper to redirect output to a log file
     function Writer {
         Param($output)
         Write-Host $output
     }
+    # Downloads from the given url to the given destination file
     function Download {
         Param($url, $dest)
         Invoke-WebRequest -Uri $url -OutFile $dest
         }
 }
 
+# Make the functions contained in the function block also available in this scope
 Invoke-Command -NoNewScope -ScriptBlock $func
-
 
 function InstallEclipse {
     Param($eclipsedownloadurl)
@@ -66,6 +67,7 @@ function CloneBuildRepo {
 
 function InstallPlugin {
     Param($repository, $installTargetFeatureGroup)
+    Writer "Installing $installTargetFeatureGroup from $repository"
     $tag=$installTargetFeatureGroup + "Installation" -join "-"
     eclipse/eclipsec.exe -nosplash -application "org.eclipse.equinox.p2.director" -repository $repository -installIU $installTargetFeatureGroup -tag $tag
 }
@@ -77,23 +79,6 @@ function FinishJob {
     Writer $output
     Remove-Job -Name $name
 }
-
-function ConvertToKeyStrokes {
-    param([int[]]$indices)
-    $return = "{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{ENTER}+{TAB}+{TAB}"
-    for ($i = 0; $i -le $indices[$indices.Count-1]; $i++) {
-        $a = $indices -contains $i
-        if($indices -contains $i) {
-            $return += " {DOWN}"
-        } else {
-            $return += "{DOWN}"
-        }
-    }
-    $return += "{TAB}{TAB}{TAB}{ENTER}"
-    return $return
-}
-
-
 
 # Main routine to check preconditions, install and configure eclipse
 Writer "Installing Eclipse Modeling Tools, downloading and importing relevant plugins"
@@ -111,21 +96,12 @@ $existingfolders = @()
 $gitExists = Test-Path $git
 $eclipseExists = Test-Path $eclipse
 $eclipseworkspaceExists = Test-Path $eclipseworkspace
-if($gitExists -eq 0){
-    # CreateFolder $git
-} else {
-    $existingfolders += @($git)
-}
-if($eclipseExists -eq 0){
-    # CreateFolder $eclipse
-} else {
-    $existingfolders += @($eclipse)
-}
-if($eclipseworkspaceExists -eq 0){
-    # CreateFolder $eclipseworkspace
-} else {
-    $existingfolders += @($eclipseworkspace)
-}
+if($gitExists -eq 0){CreateFolder $git} 
+else {$existingfolders += @($git)}
+if($eclipseExists -eq 0){CreateFolder $eclipse} 
+else { $existingfolders += @($eclipse)}
+if($eclipseworkspaceExists -eq 0){CreateFolder $eclipseworkspace} 
+else {$existingfolders += @($eclipseworkspace)}
 
 # Asks user if he wants to overwrite folders if they exist or if the existing folders should be used
 if($existingfolders.length -gt 0){
@@ -137,9 +113,9 @@ if($existingfolders.length -gt 0){
 
     $decision = $Host.UI.PromptForChoice($title, $question, $choices, 1)
     if ($decision -eq 0) {
-        # CreateFolder $git
-        # CreateFolder $eclipse
-        # CreateFolder $eclipseworkspace
+        CreateFolder $git
+        CreateFolder $eclipse
+        CreateFolder $eclipseworkspace
     } else {
         $question = 'Should the content be written into the existing folders? Existing content will remain.'
 
@@ -186,72 +162,24 @@ $NewContent = $Content -replace 'osgi.instance.area.default=.*', "osgi.instance.
 $NewContent | Set-Content eclipse\eclipse.ini
 
 # provision eclipse
-$temp = $config.updatesites -Join ","
-$updatesites = $platform.updatesite + "," + $temp
-Write-Host $updatesites
+Writer "Provisioning eclipse"
+$specificupdatesites = $config.updatesites -Join ","
+$updatesites = $platform.updatesite + "," + $specificupdatesites
 $plugins = $config.plugins
 $pluginstring = ""
-$counter = 1
 foreach($plugin in $plugins) {
     $name = $plugin.name
     $version = $plugin.version
-    if ($version -eq "") {
-        $pluginstring += "$name,"
-    } else {
-        $pluginstring += "$name/$version,"
-    }
-    $counter = $counter+1
+    if ($version -eq "") {$pluginstring += "$name,"} 
+    else {$pluginstring += "$name/$version,"}
 }
 # Start-Job -ArgumentList $updatesites,$pluginstring -ScriptBlock $Function:InstallPlugin -Name "plugin" -InitializationScript $func
 
 # await plugin installation
 FinishJob "plugin"
 
-# Problems with the headlessbuild remain
-# eclipse\eclipsec.exe -vm "C:/Program Files/Java/jdk-20/bin/server/jvm.dll" -vmargs -application "org.eclipse.cdt.managedbuilder.core.headlessbuild" -import "git\Vitruv-Change\bundles" -data "workspace"
-
 # await project builds
 for ($i = 1; $i -lt $counterproject; $i++) {
     FinishJob "project$i"
 }
-
-add-type -AssemblyName microsoft.VisualBasic
-add-type -AssemblyName System.Windows.Forms
-foreach($project in $projects){
-    $projectplugins = $project.projectplugins
-    $url = $project.url
-    $folder = $project.url -replace '.*/'
-    $folder = $folder -replace '.git'
-    Writer "Clone $url into $git/$folder" 
-    $localfolder = "$git/$folder"
-    $WindowTitle = "workspace - Eclipse IDE"
-    
-    eclipse/eclipse.exe $localfolder
-    Start-Sleep 5
-    # only select the plugins to be imported
-    start-sleep -Milliseconds 500
-    $config = ConvertToKeyStrokes $projectplugins
-    Write-Host $config
-    [Microsoft.VisualBasic.Interaction]::AppActivate($WindowTitle)
-    [System.Windows.Forms.SendKeys]::SendWait($config)
-    Start-Sleep 10
-    $counterproject = $counterproject+1
-}
-
-
-# /usr/eclipse/eclipse \
-#     -application org.eclipse.equinox.p2.director \
-#     -repository https://download.eclipse.org/releases/2023-09/,"$2" \
-#     -installIU "$1"
-
-# Install Xtext from the Eclipse Marketplace.
-
-# Install features required for your use case from the Vitruv nightly update site.
-
-# Clone project
-# build projects
-# import projects into eclipse workspace
-
-# A proper configuration especially concerns the workspace encoding, 
-# which must be set to UTF-8 (especially important for windows users), and a proper Java compiler compliance level, which should be set to 17!!!
-Write-Host "Finished"
+Writer "Finished"           
