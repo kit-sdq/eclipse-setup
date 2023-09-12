@@ -1,6 +1,6 @@
 {
     "$schema": "eclipse.config.schema.json",
-    "updatesites": ["https://vitruv-tools.github.io/updatesite/nightly/aggregated/","https://download.eclipse.org/modeling/tmf/xtext/updates/composite/marketplace/"],
+    "updatesites": ["https://vitruv-tools.github.io/updatesite/nightly/aggregated/"],
     "plugins": [
         {
             "name": "tools.vitruv.change.atomic",
@@ -52,6 +52,10 @@
         },
         {
             "name": "ch.qos.logback.classic",
+            "version": ""
+        },
+        {
+            "name": "org.eclipse.xtend.lib",
             "version": ""
         }
     ],

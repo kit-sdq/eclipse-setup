@@ -30,6 +30,7 @@ foreach($project in $projects){
     eclipse/eclipse.exe $localfolder
     Start-Sleep 5
     if($runindex) {
+        Start-Sleep 5
         [Microsoft.VisualBasic.Interaction]::AppActivate("Eclipse IDE Launcher")
         Start-Sleep 5
         [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
@@ -44,4 +45,4 @@ foreach($project in $projects){
     [System.Windows.Forms.SendKeys]::SendWait($config)
     Start-Sleep 20
 }
-Writer "Finished"
+Write-Host "Finished"

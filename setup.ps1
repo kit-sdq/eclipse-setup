@@ -61,7 +61,7 @@ function CloneBuildRepo {
     Set-Location $git
     git clone --branch $tag $url
     Set-Location $folder
-    mvn clean verify -fae
+    mvn clean verify -fae -U
     Set-Location ../..
 }
 
@@ -133,17 +133,21 @@ if($existingfolders.length -gt 0){
     }
 }
 
+$ErrorActionPreference="SilentlyContinue"
+Stop-Transcript | out-null
+$ErrorActionPreference = "Continue"
+Start-Transcript -path log.txt -append
 
 # Download eclipse
 $downloadurl = $platform.eclipsedownloadurl
-# Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse" -InitializationScript $func
+Start-Job -ArgumentList $downloadurl -ScriptBlock $Function:InstallEclipse -Name "install-eclipse" -InitializationScript $func
 
 # Download github repositories
 Writer "Starting to download github repositories"
 $projects = $config.projects
 $counterproject = 1
 foreach($project in $projects){
-    # Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counterproject" -InitializationScript $func
+    Start-Job -ArgumentList $project,$git -ScriptBlock $Function:CloneBuildRepo -Name "project$counterproject" -InitializationScript $func
     $counterproject = $counterproject+1
 }
 
@@ -173,7 +177,7 @@ foreach($plugin in $plugins) {
     if ($version -eq "") {$pluginstring += "$name,"} 
     else {$pluginstring += "$name/$version,"}
 }
-# Start-Job -ArgumentList $updatesites,$pluginstring -ScriptBlock $Function:InstallPlugin -Name "plugin" -InitializationScript $func
+Start-Job -ArgumentList $updatesites,$pluginstring -ScriptBlock $Function:InstallPlugin -Name "plugin" -InitializationScript $func
 
 # await plugin installation
 FinishJob "plugin"
@@ -182,4 +186,5 @@ FinishJob "plugin"
 for ($i = 1; $i -lt $counterproject; $i++) {
     FinishJob "project$i"
 }
-Writer "Finished"           
+Stop-Transcript
+Write-Host "Finished"           
