@@ -57,6 +57,10 @@
         {
             "name": "org.eclipse.xtend.lib",
             "version": ""
+        },
+        {
+            "name": "tools.vitruv.dsls.reactions.feature.feature.group",
+            "version": ""
         }
     ],
     "projects": [
