@@ -35,14 +35,6 @@
             "version": ""
         },
         {
-            "name": "edu.kit.ipd.sdq.metamodels.autosar",
-            "version": ""
-        },
-        {
-            "name": "edu.kit.ipd.sdq.metamodels.simulink",
-            "version": ""
-        },
-        {
             "name": "tools.vitruv.testutils.vsum",
             "version": ""
         },
