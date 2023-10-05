@@ -9,7 +9,11 @@
           "description": "The download url for the eclipse to be used. Shall be a Modelling Tools eclipse zip.",
           "type": "string"
         },
-        "updatesite" : "string"
+        "updatesite" : "string",
+        "mvnw": {
+          "description": "Maven wrapper script name",
+          "type": "string"
+        }
       },
-      "required": [ "eclipsedownloadurl", "updatesite" ]
+      "required": [ "eclipsedownloadurl", "updatesite", "mvnw" ]
   }
