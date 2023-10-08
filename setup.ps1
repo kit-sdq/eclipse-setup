@@ -66,7 +66,7 @@ function CloneBuildRepo {
     Set-Location $git
     git clone --branch $tag $url
     Set-Location $folder
-    mvn clean verify -fae -U
+    & $config.mvnw clean verify -fae -U
     Set-Location ../..
 }
 
@@ -90,7 +90,6 @@ function FinishJob {
 Writer "Installing Eclipse Modeling Tools, downloading and importing relevant plugins"
 Get-Condition "17" (Get-Version "java") "Java 17 not found! Please ensure you have Java installed!"
 Get-Condition "" (Get-Version "git") "Git not found!"
-Get-Condition "" (Get-Version "mvn") "Maven not found! Please install maven, as the automatic installation is currently not supported"
 $config = Get-Content -Raw -Path config.json | ConvertFrom-Json
 $platform = Get-Content -Raw -Path $platformpath | ConvertFrom-Json
 
